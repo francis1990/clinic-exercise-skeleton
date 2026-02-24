@@ -230,6 +230,18 @@ Respuesta (200):
 
 ---
 
+## Ejecutar tests
+
+```bash
+php artisan test
+```
+
+Los tests cubren:
+- **Unit (9 tests)**: ClinicSchedule - deteccion de solapamientos en todos los escenarios
+- **Feature (20 tests)**: Login, creacion de pacientes, creacion de citas y listado por dia
+
+---
+
 ## Estructura del proyecto
 
 ```
@@ -241,24 +253,55 @@ app/
   Models/                # Modelos Eloquent
   Services/              # Logica de negocio (AppointmentService)
   Exceptions/            # Excepciones personalizadas
+  Providers/             # Service Container bindings
 src/
-  ClinicSchedule.php     # Componente de scheduling sin dependencias de Laravel
+  ClinicSchedule.php     # Componente de scheduling framework-agnostic (sin dependencias Laravel)
 legacy/
-  AppointmentPricing.php # Codigo legado (sin modificar)
+  crearCita_original.php # Codigo original comentado con problemas documentados
+  src/
+    Database/            # Conexion PDO configurable con prepared statements
+    DTO/                 # Objeto inmutable con validacion estricta
+    Repository/          # Persistencia con prepared statements (previene SQL injection)
+    Service/             # Caso de uso: orquesta validacion y persistencia
+    Exception/           # Excepciones tipadas (ValidationException, DatabaseException)
 database/
-  migrations/            # Esquema de base de datos
-  seeders/               # Datos iniciales
+  migrations/            # Esquema de base de datos con claves foraneas e indices
+  seeders/               # Datos iniciales (recepcionista, dentistas, tratamientos)
+tests/
+  Unit/                  # Tests unitarios (ClinicSchedule)
+  Feature/Api/           # Tests de integracion (endpoints API)
 ```
+
+## Componente legacy refactorizado
+
+El codigo original `crearCita()` presentaba multiples problemas de seguridad y mantenibilidad:
+
+1. **SQL Injection**: concatenacion directa de variables en queries SQL
+2. **Credenciales hardcodeadas**: conexion mysqli con `root`/sin contraseña en el codigo
+3. **Sin validacion**: solo comprobaba existencia de `paciente_id` y `dentista_id`
+4. **Sin manejo de errores**: retornaba "OK" o "ERROR" sin contexto
+5. **Sin OOP**: funcion procedural sin encapsulacion
+6. **Resource leak**: sin cierre de conexion a base de datos
+
+La refactorizacion en `legacy/src/` aplica:
+- **PDO con prepared statements** para prevenir SQL injection
+- **DTO inmutable** (`AppointmentData`) con validacion estricta de tipos y formatos
+- **Repositorio** que encapsula la persistencia
+- **Servicio/caso de uso** (`AppointmentCreator`) que orquesta el flujo
+- **Excepciones tipadas** con mensajes descriptivos
+- **Principios SOLID**: responsabilidad unica, inyeccion de dependencias, abierto/cerrado
+- **PSR-12**: estilo de codigo estandarizado
 
 ## Decisiones de diseno
 
 - **Separacion de responsabilidades**: los controladores son ligeros y delegan la logica de negocio a `AppointmentService`. El componente `ClinicSchedule` en `src/` es framework-agnostic.
 - **Validacion**: se usa Form Requests de Laravel para validar las entradas antes de llegar al controlador.
 - **Deteccion de solapamientos**: el servicio consulta citas existentes del dentista y usa `ClinicSchedule::isSlotAvailable()` para verificar disponibilidad antes de crear la cita.
-- **Respuestas estandarizadas**: todas las respuestas JSON siguen el formato `{message, data}` con codigos HTTP apropiados.
+- **Respuestas estandarizadas**: todas las respuestas JSON siguen el formato `{message, data}` con codigos HTTP apropiados. Excepciones no controladas devuelven mensajes genericos en produccion.
 - **Eager loading**: las citas se cargan con sus tratamientos para evitar N+1 queries.
 - **Transacciones**: la creacion de citas (appointment + pivot treatments) se ejecuta en una transaccion de base de datos.
 - **Especialidades de dentistas como JSON**: almacenadas como array JSON para permitir multiples especialidades por dentista sin necesidad de una tabla intermedia.
+- **Seguridad**: credenciales externalizadas a variables de entorno, APP_DEBUG=false por defecto en .env.example, manejo global de excepciones que oculta detalles internos en produccion.
 
 ## Datos precargados
 
