@@ -12,7 +12,7 @@ class UserSeeder extends Seeder
         User::create([
             'name' => 'Recepcionista',
             'email' => 'recepcionista@pruebasmulhacen.com',
-            'password' => '0dHGgfh49v',
+            'password' => env('RECEPTIONIST_PASSWORD', '0dHGgfh49v'),
         ]);
     }
 }

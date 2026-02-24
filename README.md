@@ -31,15 +31,16 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-Ajustar las variables de base de datos en `.env` si es necesario:
+Ajustar las variables de base de datos en `.env` segun tu configuracion local:
 
 ```
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3307
 DB_DATABASE=clinic
-DB_USERNAME=clinic
-DB_PASSWORD=clinic
+DB_USERNAME=<tu_usuario_db>
+DB_PASSWORD=<tu_password_db>
+RECEPTIONIST_PASSWORD=<contraseña_recepcionista>
 ```
 
 ### 4. Levantar la base de datos
@@ -102,7 +103,7 @@ curl -X POST http://localhost:8000/api/login \
   -H "Accept: application/json" \
   -d '{
     "email": "recepcionista@pruebasmulhacen.com",
-    "password": "0dHGgfh49v"
+    "password": "<RECEPTIONIST_PASSWORD>"
   }'
 ```
 
@@ -284,4 +285,4 @@ database/
 
 | Email | Password |
 |-------|----------|
-| recepcionista@pruebasmulhacen.com | 0dHGgfh49v |
+| recepcionista@pruebasmulhacen.com | Definida en `RECEPTIONIST_PASSWORD` del `.env` |
