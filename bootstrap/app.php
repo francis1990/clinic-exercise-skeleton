@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -43,6 +44,26 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => 'Recurso no encontrado.',
                     'data' => null,
                 ], 404);
+            }
+        });
+
+        $exceptions->render(function (HttpException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage() ?: 'Error del servidor.',
+                    'data' => null,
+                ], $e->getStatusCode());
+            }
+        });
+
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => app()->hasDebugModeEnabled()
+                        ? $e->getMessage()
+                        : 'Error interno del servidor.',
+                    'data' => null,
+                ], 500);
             }
         });
     })->create();
