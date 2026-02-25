@@ -11,6 +11,7 @@ use App\Services\AppointmentService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
 
 class AppointmentController extends Controller
 {
@@ -18,6 +19,64 @@ class AppointmentController extends Controller
         private readonly AppointmentService $appointmentService,
     ) {}
 
+    #[OA\Get(
+        path: '/api/appointments',
+        summary: 'Listar citas por dia',
+        description: 'Devuelve todas las citas de un dia concreto, ordenadas por hora de inicio. Requiere autenticacion.',
+        security: [['bearerAuth' => []]],
+        tags: ['Citas'],
+        parameters: [
+            new OA\Parameter(
+                name: 'date',
+                in: 'query',
+                required: true,
+                description: 'Fecha en formato Y-m-d',
+                schema: new OA\Schema(type: 'string', format: 'date', example: '2026-03-15')
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Listado de citas del dia',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string', example: 'Citas del día 2026-03-15.'),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(
+                                properties: [
+                                    new OA\Property(property: 'id', type: 'integer', example: 1),
+                                    new OA\Property(property: 'start_time', type: 'string', example: '2026-03-15 09:00'),
+                                    new OA\Property(property: 'end_time', type: 'string', example: '2026-03-15 09:45'),
+                                    new OA\Property(property: 'dentist_id', type: 'integer', example: 1),
+                                    new OA\Property(property: 'patient_id', type: 'integer', example: 1),
+                                    new OA\Property(
+                                        property: 'treatment_ids',
+                                        type: 'array',
+                                        items: new OA\Items(type: 'integer'),
+                                        example: [1]
+                                    ),
+                                    new OA\Property(property: 'reason', type: 'string', example: 'Colocacion de brackets'),
+                                ]
+                            )
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'No autenticado'),
+            new OA\Response(
+                response: 422,
+                description: 'Parametro date requerido o formato invalido',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string', example: 'Error de validación.'),
+                        new OA\Property(property: 'data', type: 'object'),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function index(Request $request): JsonResponse
     {
         $request->validate([
@@ -37,6 +96,83 @@ class AppointmentController extends Controller
         ]);
     }
 
+    #[OA\Post(
+        path: '/api/appointments',
+        summary: 'Crear cita',
+        description: 'Crea una nueva cita dental. Valida solapamiento de horarios por dentista. Requiere autenticacion.',
+        security: [['bearerAuth' => []]],
+        tags: ['Citas'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['patient_id', 'dentist_id', 'start_time', 'duration', 'reason', 'treatment_ids'],
+                properties: [
+                    new OA\Property(property: 'patient_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'dentist_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'start_time', type: 'string', format: 'date-time', description: 'Formato Y-m-d H:i', example: '2026-03-15 09:00'),
+                    new OA\Property(property: 'duration', type: 'integer', minimum: 5, maximum: 480, description: 'Duracion en minutos', example: 45),
+                    new OA\Property(property: 'reason', type: 'string', maxLength: 500, example: 'Colocacion de brackets'),
+                    new OA\Property(
+                        property: 'treatment_ids',
+                        type: 'array',
+                        items: new OA\Items(type: 'integer'),
+                        minItems: 1,
+                        example: [1]
+                    ),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Cita creada',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string', example: 'Cita creada correctamente.'),
+                        new OA\Property(
+                            property: 'data',
+                            type: 'object',
+                            properties: [
+                                new OA\Property(property: 'id', type: 'integer', example: 1),
+                                new OA\Property(property: 'start_time', type: 'string', example: '2026-03-15 09:00'),
+                                new OA\Property(property: 'end_time', type: 'string', example: '2026-03-15 09:45'),
+                                new OA\Property(property: 'dentist_id', type: 'integer', example: 1),
+                                new OA\Property(property: 'patient_id', type: 'integer', example: 1),
+                                new OA\Property(
+                                    property: 'treatment_ids',
+                                    type: 'array',
+                                    items: new OA\Items(type: 'integer'),
+                                    example: [1]
+                                ),
+                                new OA\Property(property: 'reason', type: 'string', example: 'Colocacion de brackets'),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'No autenticado'),
+            new OA\Response(
+                response: 409,
+                description: 'Solapamiento de horario con otra cita del mismo dentista',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string', example: 'El horario seleccionado no está disponible para este dentista.'),
+                        new OA\Property(property: 'data', type: 'object', nullable: true, example: null),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Error de validacion',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string', example: 'Error de validación.'),
+                        new OA\Property(property: 'data', type: 'object'),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function store(StoreAppointmentRequest $request): JsonResponse
     {
         try {
