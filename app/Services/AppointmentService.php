@@ -50,15 +50,73 @@ class AppointmentService
     }
 
     /**
+     * Update an existing appointment.
+     *
+     * @param  array<string, mixed>  $data
+     *
+     * @throws \App\Exceptions\SlotNotAvailableException
+     */
+    public function update(Appointment $appointment, array $data): Appointment
+    {
+        $startTime = isset($data['start_time'])
+            ? Carbon::createFromFormat('Y-m-d H:i', $data['start_time'])
+            : $appointment->start_time;
+
+        $duration = $data['duration'] ?? null;
+
+        if (isset($data['start_time']) || isset($data['duration'])) {
+            $endTime = $startTime->copy()->addMinutes(
+                $duration ?? $startTime->diffInMinutes($appointment->end_time)
+            );
+        } else {
+            $endTime = $appointment->end_time;
+        }
+
+        $dentistId = $data['dentist_id'] ?? $appointment->dentist_id;
+
+        $this->ensureSlotAvailable($dentistId, $startTime, $endTime, $appointment->id);
+
+        return DB::transaction(function () use ($appointment, $data, $startTime, $endTime) {
+            $appointment->update(array_filter([
+                'patient_id' => $data['patient_id'] ?? null,
+                'dentist_id' => $data['dentist_id'] ?? null,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'reason' => $data['reason'] ?? null,
+            ], fn ($value) => $value !== null));
+
+            if (isset($data['treatment_ids'])) {
+                $appointment->treatments()->sync($data['treatment_ids']);
+            }
+
+            return $appointment->load(['patient', 'dentist', 'treatments']);
+        });
+    }
+
+    /**
+     * Delete an appointment.
+     */
+    public function delete(Appointment $appointment): void
+    {
+        $appointment->delete();
+    }
+
+    /**
      * Check if the requested slot is available for the dentist.
      *
      * @throws \App\Exceptions\SlotNotAvailableException
      */
-    private function ensureSlotAvailable(int $dentistId, Carbon $start, Carbon $end): void
+    private function ensureSlotAvailable(int $dentistId, Carbon $start, Carbon $end, ?int $excludeId = null): void
     {
-        $existingAppointments = Appointment::where('dentist_id', $dentistId)
+        $query = Appointment::where('dentist_id', $dentistId)
             ->where('start_time', '<', $end)
-            ->where('end_time', '>', $start)
+            ->where('end_time', '>', $start);
+
+        if ($excludeId !== null) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        $existingAppointments = $query
             ->get(['start_time', 'end_time'])
             ->map(fn (Appointment $apt) => [
                 'start' => $apt->start_time,
@@ -66,8 +124,8 @@ class AppointmentService
             ])
             ->toArray();
 
-        if (!$this->schedule->isSlotAvailable($existingAppointments, $start, $end)) {
-            throw new \App\Exceptions\SlotNotAvailableException();
+        if (! $this->schedule->isSlotAvailable($existingAppointments, $start, $end)) {
+            throw new \App\Exceptions\SlotNotAvailableException;
         }
     }
 }

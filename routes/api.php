@@ -11,4 +11,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/patients', [PatientController::class, 'store']);
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::post('/appointments', [AppointmentController::class, 'store']);
+    Route::put('/appointments/{appointment}', [AppointmentController::class, 'update']);
+    Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
 });

@@ -19,9 +19,7 @@ class ClinicSchedule
      *
      * Overlap exists when: existing.start < new.end AND existing.end > new.start
      *
-     * @param array<int, array{start: DateTimeInterface, end: DateTimeInterface}> $existingAppointments
-     * @param DateTimeInterface $proposedStart
-     * @param DateTimeInterface $proposedEnd
+     * @param  array<int, array{start: DateTimeInterface, end: DateTimeInterface}>  $existingAppointments
      * @return bool True if the slot is available, false if there is a conflict.
      */
     public function isSlotAvailable(

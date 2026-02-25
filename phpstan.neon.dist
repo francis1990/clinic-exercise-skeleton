@@ -1,0 +1,13 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+        - src/
+
+    level: 5
+
+    # Prevent OOM in constrained environments (CI, Docker)
+    parallel:
+        maximumNumberOfProcesses: 1

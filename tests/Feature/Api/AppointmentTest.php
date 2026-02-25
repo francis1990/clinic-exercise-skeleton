@@ -16,7 +16,9 @@ class AppointmentTest extends TestCase
     use RefreshDatabase;
 
     private Patient $patient;
+
     private Dentist $dentist;
+
     private Treatment $treatment;
 
     protected function setUp(): void
@@ -182,6 +184,157 @@ class AppointmentTest extends TestCase
         $this->app['auth']->forgetGuards();
 
         $response = $this->getJson('/api/appointments?date=2026-03-15');
+
+        $response->assertUnauthorized();
+    }
+
+    // ── Update tests ──────────────────────────────────────────────
+
+    public function test_update_appointment_successfully(): void
+    {
+        $appointment = Appointment::create([
+            'patient_id' => $this->patient->id,
+            'dentist_id' => $this->dentist->id,
+            'start_time' => '2026-03-15 09:00:00',
+            'end_time' => '2026-03-15 09:45:00',
+            'reason' => 'Motivo original',
+        ]);
+        $appointment->treatments()->attach($this->treatment->id);
+
+        $response = $this->putJson("/api/appointments/{$appointment->id}", [
+            'reason' => 'Motivo actualizado',
+            'start_time' => '2026-03-15 10:00',
+            'duration' => 30,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'message',
+                'data' => ['id', 'start_time', 'end_time', 'dentist_id', 'patient_id', 'treatment_ids', 'reason'],
+            ])
+            ->assertJsonPath('data.reason', 'Motivo actualizado')
+            ->assertJsonPath('data.start_time', '2026-03-15 10:00')
+            ->assertJsonPath('data.end_time', '2026-03-15 10:30');
+    }
+
+    public function test_update_appointment_with_overlap_returns_409(): void
+    {
+        // Create two appointments
+        Appointment::create([
+            'patient_id' => $this->patient->id,
+            'dentist_id' => $this->dentist->id,
+            'start_time' => '2026-03-15 09:00:00',
+            'end_time' => '2026-03-15 09:45:00',
+            'reason' => 'Primera cita',
+        ]);
+
+        $second = Appointment::create([
+            'patient_id' => $this->patient->id,
+            'dentist_id' => $this->dentist->id,
+            'start_time' => '2026-03-15 11:00:00',
+            'end_time' => '2026-03-15 11:45:00',
+            'reason' => 'Segunda cita',
+        ]);
+
+        // Try to move second appointment to overlap with first
+        $response = $this->putJson("/api/appointments/{$second->id}", [
+            'start_time' => '2026-03-15 09:30',
+            'duration' => 30,
+        ]);
+
+        $response->assertStatus(409);
+    }
+
+    public function test_update_appointment_partial_only_reason(): void
+    {
+        $appointment = Appointment::create([
+            'patient_id' => $this->patient->id,
+            'dentist_id' => $this->dentist->id,
+            'start_time' => '2026-03-15 09:00:00',
+            'end_time' => '2026-03-15 09:45:00',
+            'reason' => 'Motivo original',
+        ]);
+        $appointment->treatments()->attach($this->treatment->id);
+
+        $response = $this->putJson("/api/appointments/{$appointment->id}", [
+            'reason' => 'Solo cambio el motivo',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.reason', 'Solo cambio el motivo')
+            ->assertJsonPath('data.start_time', '2026-03-15 09:00')
+            ->assertJsonPath('data.end_time', '2026-03-15 09:45');
+    }
+
+    public function test_update_nonexistent_appointment_returns_404(): void
+    {
+        $response = $this->putJson('/api/appointments/9999', [
+            'reason' => 'No existe',
+        ]);
+
+        $response->assertNotFound();
+    }
+
+    public function test_update_appointment_without_auth_returns_401(): void
+    {
+        $appointment = Appointment::create([
+            'patient_id' => $this->patient->id,
+            'dentist_id' => $this->dentist->id,
+            'start_time' => '2026-03-15 09:00:00',
+            'end_time' => '2026-03-15 09:45:00',
+            'reason' => 'Test',
+        ]);
+
+        $this->app['auth']->forgetGuards();
+
+        $response = $this->putJson("/api/appointments/{$appointment->id}", [
+            'reason' => 'Actualizado',
+        ]);
+
+        $response->assertUnauthorized();
+    }
+
+    // ── Delete tests ──────────────────────────────────────────────
+
+    public function test_delete_appointment_successfully(): void
+    {
+        $appointment = Appointment::create([
+            'patient_id' => $this->patient->id,
+            'dentist_id' => $this->dentist->id,
+            'start_time' => '2026-03-15 09:00:00',
+            'end_time' => '2026-03-15 09:45:00',
+            'reason' => 'Para eliminar',
+        ]);
+        $appointment->treatments()->attach($this->treatment->id);
+
+        $response = $this->deleteJson("/api/appointments/{$appointment->id}");
+
+        $response->assertOk()
+            ->assertJsonPath('message', 'Cita eliminada correctamente.');
+
+        $this->assertDatabaseMissing('appointments', ['id' => $appointment->id]);
+    }
+
+    public function test_delete_nonexistent_appointment_returns_404(): void
+    {
+        $response = $this->deleteJson('/api/appointments/9999');
+
+        $response->assertNotFound();
+    }
+
+    public function test_delete_appointment_without_auth_returns_401(): void
+    {
+        $appointment = Appointment::create([
+            'patient_id' => $this->patient->id,
+            'dentist_id' => $this->dentist->id,
+            'start_time' => '2026-03-15 09:00:00',
+            'end_time' => '2026-03-15 09:45:00',
+            'reason' => 'Test',
+        ]);
+
+        $this->app['auth']->forgetGuards();
+
+        $response = $this->deleteJson("/api/appointments/{$appointment->id}");
 
         $response->assertUnauthorized();
     }

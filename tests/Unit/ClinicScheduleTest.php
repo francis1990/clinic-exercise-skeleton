@@ -13,7 +13,7 @@ class ClinicScheduleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->schedule = new ClinicSchedule();
+        $this->schedule = new ClinicSchedule;
     }
 
     public function test_slot_is_available_when_no_existing_appointments(): void

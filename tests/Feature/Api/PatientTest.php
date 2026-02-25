@@ -43,7 +43,7 @@ class PatientTest extends TestCase
 
     public function test_create_patient_without_auth_returns_401(): void
     {
-        Sanctum::actingAs(new User()); // Reset auth
+        Sanctum::actingAs(new User); // Reset auth
         $this->app['auth']->forgetGuards();
 
         $response = $this->postJson('/api/patients', [

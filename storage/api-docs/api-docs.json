@@ -292,6 +292,237 @@
                 ]
             }
         },
+        "/api/appointments/{appointment}": {
+            "put": {
+                "tags": [
+                    "Citas"
+                ],
+                "summary": "Actualizar cita",
+                "description": "Actualiza una cita existente. Permite actualización parcial. Valida solapamiento de horarios. Requiere autenticacion.",
+                "operationId": "c9a722d7ce59c38c8957da679a6075e5",
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "description": "ID de la cita",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "patient_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "dentist_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "start_time": {
+                                        "description": "Formato Y-m-d H:i",
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2026-03-15 09:00"
+                                    },
+                                    "duration": {
+                                        "description": "Duracion en minutos",
+                                        "type": "integer",
+                                        "maximum": 480,
+                                        "minimum": 5,
+                                        "example": 45
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "maxLength": 500,
+                                        "example": "Revision general"
+                                    },
+                                    "treatment_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "minItems": 1,
+                                        "example": [
+                                            1
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Cita actualizada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Cita actualizada correctamente."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "start_time": {
+                                                    "type": "string",
+                                                    "example": "2026-03-15 09:00"
+                                                },
+                                                "end_time": {
+                                                    "type": "string",
+                                                    "example": "2026-03-15 09:45"
+                                                },
+                                                "dentist_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "patient_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "treatment_ids": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer"
+                                                    },
+                                                    "example": [
+                                                        1
+                                                    ]
+                                                },
+                                                "reason": {
+                                                    "type": "string",
+                                                    "example": "Revision general"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    },
+                    "404": {
+                        "description": "Cita no encontrada"
+                    },
+                    "409": {
+                        "description": "Solapamiento de horario con otra cita del mismo dentista",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "El horario seleccionado no está disponible para este dentista."
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "example": null,
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validacion",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Error de validación."
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Citas"
+                ],
+                "summary": "Eliminar cita",
+                "description": "Elimina una cita existente. Requiere autenticacion.",
+                "operationId": "d7abad41edc8f176f315fdd85f612419",
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "description": "ID de la cita",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cita eliminada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Cita eliminada correctamente."
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "example": null,
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    },
+                    "404": {
+                        "description": "Cita no encontrada"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/login": {
             "post": {
                 "tags": [
