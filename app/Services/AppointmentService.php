@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Domain\Schedule\ClinicSchedule;
 use App\Models\Appointment;
+use Booking\Domain\Services\ConflictDetectionService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class AppointmentService
 {
     public function __construct(
-        private readonly ClinicSchedule $schedule,
+        private readonly ConflictDetectionService $schedule,
     ) {}
 
     /**

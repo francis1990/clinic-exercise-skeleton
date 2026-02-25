@@ -25,7 +25,7 @@
     "autoload": {
         "psr-4": {
             "App\\": "app/",
-            "App\\Domain\\Schedule\\": "src/",
+            "Booking\\": "src/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

@@ -2,18 +2,22 @@
 
 namespace Tests\Unit;
 
-use App\Domain\Schedule\ClinicSchedule;
+use Booking\Domain\Services\ConflictDetectionService;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Tests for ConflictDetectionService::isSlotAvailable()
+ * (formerly tested via ClinicSchedule – migrated to the new Domain Service)
+ */
 class ClinicScheduleTest extends TestCase
 {
-    private ClinicSchedule $schedule;
+    private ConflictDetectionService $schedule;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->schedule = new ClinicSchedule;
+        $this->schedule = new ConflictDetectionService;
     }
 
     public function test_slot_is_available_when_no_existing_appointments(): void
