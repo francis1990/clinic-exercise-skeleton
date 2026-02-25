@@ -256,14 +256,6 @@ app/
   Providers/             # Service Container bindings
 src/
   ClinicSchedule.php     # Componente de scheduling framework-agnostic (sin dependencias Laravel)
-legacy/
-  crearCita_original.php # Codigo original comentado con problemas documentados
-  src/
-    Database/            # Conexion PDO configurable con prepared statements
-    DTO/                 # Objeto inmutable con validacion estricta
-    Repository/          # Persistencia con prepared statements (previene SQL injection)
-    Service/             # Caso de uso: orquesta validacion y persistencia
-    Exception/           # Excepciones tipadas (ValidationException, DatabaseException)
 database/
   migrations/            # Esquema de base de datos con claves foraneas e indices
   seeders/               # Datos iniciales (recepcionista, dentistas, tratamientos)
@@ -271,26 +263,6 @@ tests/
   Unit/                  # Tests unitarios (ClinicSchedule)
   Feature/Api/           # Tests de integracion (endpoints API)
 ```
-
-## Componente legacy refactorizado
-
-El codigo original `crearCita()` presentaba multiples problemas de seguridad y mantenibilidad:
-
-1. **SQL Injection**: concatenacion directa de variables en queries SQL
-2. **Credenciales hardcodeadas**: conexion mysqli con `root`/sin contraseña en el codigo
-3. **Sin validacion**: solo comprobaba existencia de `paciente_id` y `dentista_id`
-4. **Sin manejo de errores**: retornaba "OK" o "ERROR" sin contexto
-5. **Sin OOP**: funcion procedural sin encapsulacion
-6. **Resource leak**: sin cierre de conexion a base de datos
-
-La refactorizacion en `legacy/src/` aplica:
-- **PDO con prepared statements** para prevenir SQL injection
-- **DTO inmutable** (`AppointmentData`) con validacion estricta de tipos y formatos
-- **Repositorio** que encapsula la persistencia
-- **Servicio/caso de uso** (`AppointmentCreator`) que orquesta el flujo
-- **Excepciones tipadas** con mensajes descriptivos
-- **Principios SOLID**: responsabilidad unica, inyeccion de dependencias, abierto/cerrado
-- **PSR-12**: estilo de codigo estandarizado
 
 ## Decisiones de diseno
 
